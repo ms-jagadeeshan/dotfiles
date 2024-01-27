@@ -1,2 +1,3 @@
 source ~/.bash/bashrc
 source ~/.bash/bashalias
+source ~/.bash/bashfunc
