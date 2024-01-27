@@ -1,0 +1,74 @@
+#!/bin/bash
+
+interface_name=""
+reset_flag=false
+mac_address="e4:5f:01:68:89:e8"
+
+POSITIONAL=()
+while (($# > 0)); do
+    case "${1}" in
+    -h | --help)
+        echo "Usage: change_mac [OPTION]... wifi|ethernet\n"
+        echo "  -n, --name <network_interface_name> Name of the network interface to change"
+        echo "  -r, --reset                         Reset to original, permanent hardware MAC"
+        echo "  -m, --mac XX:XX:XX:XX:XX:XX         Set the MAC XX:XX:XX:XX:XX:XX"
+        echo "  -h, --help                          Print this help"
+        shift
+        ;;
+    -n | --name)
+        n_args=1
+        if (($# < n_args + 1)); then
+            echo "Option needs an argument '--name <network_interface_name>'"
+            exit
+        else
+            interface_name="$2"
+            shift $((n_args + 1))
+        fi
+        ;;
+    --mac)
+        n_args=1
+        if (($# < n_args + 1)); then
+            echo "Option needs an argument '--mac <mac_address>'"
+            exit
+        else
+            mac_address="$2"
+            shift $((n_args + 1))
+        fi
+        ;;
+    -r | --reset)
+        reset_flag=true
+        shift
+        ;;
+    *)
+        POSITIONAL+=("${1}")
+        shift
+        ;;
+    esac
+done
+
+set -- "${POSITIONAL[@]}"
+
+if [ -z "$interface_name" ]; then
+    if [ "$1" == "wifi" ]; then
+        interface_name=$(ls /sys/class/net | grep ^wl | head -1)
+    elif [ "$1" == "ethernet" ]; then
+        interface_name=$(ls /sys/class/net | grep '^en\|^eth' | head -1)
+    else
+        interface_name=$(ls /sys/class/net | grep '^en\|^eth' | head -1)
+    fi
+fi
+
+if [ -z "$interface_name" ]; then
+    echo "Can't able to retrive network interface name.\n run the command with interface name 'change_mac --name <network_interface_name>'"
+    exit 1
+fi
+
+# ip link set dev
+sudo ifconfig "${interface_name}" down
+
+if [ "$reset_flag" = true ]; then
+    sudo macchanger -p "${interface_name}"
+else
+    sudo macchanger --mac="${mac_address}" "${interface_name}"
+fi
+sudo ifconfig "${interface_name}" up
