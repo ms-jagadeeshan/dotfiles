@@ -1,0 +1,35 @@
+---
+version: "2"
+services:
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: bookstack
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - APP_URL=http://localhost:8001
+      - DB_HOST=bookstack_db
+      - DB_USER=jagamatrix
+      - DB_PASS=jagamatrix
+      - DB_DATABASE=bookstackapp
+    volumes:
+      - ./bookstack_app_data:/config
+    ports:
+      - 8001:80
+    restart: unless-stopped
+    depends_on:
+      - bookstack_db
+  bookstack_db:
+    image: lscr.io/linuxserver/mariadb
+    container_name: bookstack_db
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ROOT_PASSWORD=jagamatrix
+      - TZ=Asia/Kolkata
+      - MYSQL_DATABASE=bookstackapp
+      - MYSQL_USER=jagamatrix
+      - MYSQL_PASSWORD=jagamatrix
+    volumes:
+      - ./bookstack_db_data:/config
+    restart: unless-stopped
