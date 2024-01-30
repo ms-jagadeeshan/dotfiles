@@ -23,3 +23,5 @@ function xcp()
 function fix_time(){
     sudo date -s "$(curl -sI google.com | awk -F': ' '/Date/{print $2}' | tr -d '\r' | date -f - "+%Y-%m-%d %H:%M:%S")"
 }
+
+

@@ -4,5 +4,93 @@ export _colcon_cd_root=/opt/ros/humble/
 export ROS_DOMAIN_ID=10
 
 
-## Functions
+# Constants
+WORKSPACE_LIST="$HOME/.ros_workspace"
+IS_COLCON_SYM_INSTALL="true"
+IS_COLCON_SEQUENTIAL="false"
+COLCON_PARALLEL_WORKERS="$(nproc)"
+IS_COLCON_NICE="true"
 
+# Generates arguments for colcon build
+function _gen_concon_args()
+{
+    local args=""
+
+    if [[ "$IS_COLCON_SYM_INSTALL" = "true" ]]; then
+        args+=" --symlink-install "
+    fi
+
+    if [[ "$IS_COLCON_SEQUENTIAL" == "true" ]]; then
+        args+=" --executor sequential "
+    else
+        args+=" --parallel-workers ${COLCON_PARALLEL_WORKERS} "
+    fi
+    echo "${args}"
+}
+
+# Generate prefix for colcon build
+function _gen_colcon_prefix()
+{
+    local prefix=""
+
+    if [[ "$IS_COLCON_NICE" == "true" ]]; then
+        prefix+="nice"
+    fi
+
+    echo "${prefix}"
+}
+
+# Locate the workspace based of workspaces list given
+function _locate_ros_workspace()
+{
+    local current_dir=$(pwd)
+
+    while IFS=: read -r path name; do
+
+        if [[ "${current_dir}" == "${path}"* ]]; then
+            echo "${path}"
+            return 0
+        fi
+    done < "${WORKSPACE_LIST}"
+
+    return 1
+
+}
+
+# Source the workspace
+function sows()
+{
+    local workspace_path=$(_locate_ros_workspace)
+    if [ -z "$workspace_path" ]; then
+        echo "Workspace not found, Add workspace path to $WORKSPACE_LIST"
+        return 1
+    fi
+    source "${workspace_path}/install/setup.bash" && echo  "Sourced the workspace $workspace_path"
+}
+
+# Build and source the workspace
+function basows()
+{
+    local workspace_path=$(_locate_ros_workspace)
+    local colcon_args=$(_gen_concon_args)
+
+    if [ -z "$workspace_path" ]; then
+        echo "Workspace not found, Add workspace path to $WORKSPACE_LIST"
+        return 1
+    fi
+
+    if [[ "$1" = "--this" ]]; then
+        colcon_args+=" --base-paths $(pwd) "
+        shift 1
+    fi
+
+    if [[ "$*" != "" ]]; then
+        colcon_args+=" --packages-select "
+        colcon_args+=" $* "
+    fi
+
+    pushd ${workspace_path} || return
+    $(_gen_colcon_prefix) colcon build $colcon_args
+    sows
+    popd
+}
