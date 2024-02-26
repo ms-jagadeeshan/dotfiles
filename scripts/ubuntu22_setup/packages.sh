@@ -16,6 +16,12 @@ function install_cloudfare(){
 
 }
 
+function install_hotspot()
+{
+    sudo add-apt-repository ppa:lakinduakash/lwh
+    sudo apt install linux-wifi-hotspot
+}
+
 function fix_firefox()
 {
     sudo add-apt-repository ppa:mozillateam/ppa
@@ -116,5 +122,7 @@ function install_ros()
     sudo apt update && sudo apt upgrade
 
     sudo apt install ros-humble-ros-base
+    sudo apt install ros-humble-joint-state-publisher
     sudo apt install ros-humble-gz
+    sudo apt install ros-humble-navigation2
 }

@@ -43,7 +43,8 @@ function _gen_colcon_prefix()
 # Locate the workspace based of workspaces list given
 function _locate_ros_workspace()
 {
-    local current_dir=$(pwd)
+    local current_dir
+    current_dir=$(pwd)
 
     while IFS=: read -r path name; do
 
@@ -60,7 +61,8 @@ function _locate_ros_workspace()
 # Source the workspace
 function sows()
 {
-    local workspace_path=$(_locate_ros_workspace)
+    local workspace_path
+    workspace_path=$(_locate_ros_workspace)
     if [ -z "$workspace_path" ]; then
         echo "Workspace not found, Add workspace path to $WORKSPACE_LIST"
         return 1
@@ -71,8 +73,9 @@ function sows()
 # Build and source the workspace
 function basows()
 {
-    local workspace_path=$(_locate_ros_workspace)
-    local colcon_args=$(_gen_concon_args)
+    local workspace_path colcon_args
+    workspace_path=$(_locate_ros_workspace)
+    colcon_args=$(_gen_concon_args)
 
     if [ -z "$workspace_path" ]; then
         echo "Workspace not found, Add workspace path to $WORKSPACE_LIST"
@@ -89,8 +92,8 @@ function basows()
         colcon_args+=" $* "
     fi
 
-    pushd ${workspace_path} || return
+    pushd "${workspace_path}" || return
     $(_gen_colcon_prefix) colcon build $colcon_args
     sows
-    popd
+    popd || return
 }
