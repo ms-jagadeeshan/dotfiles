@@ -1,26 +1,26 @@
 source /opt/ros/humble/setup.bash
 source /usr/share/colcon_cd/function/colcon_cd.sh
 export _colcon_cd_root=/opt/ros/humble/
-export ROS_DOMAIN_ID=10
+export ROS_DOMAIN_ID=15
 
 
 # Constants
-WORKSPACE_LIST="$HOME/.ros_workspace"
-IS_COLCON_SYM_INSTALL="true"
-IS_COLCON_SEQUENTIAL="false"
-COLCON_PARALLEL_WORKERS="$(nproc)"
-IS_COLCON_NICE="true"
+export ROS_WORKSPACE_LIST="$HOME/.ros_workspace"
+COLCON_IS_SYM_INSTALL="true"
+COLCON_IS_SEQUENTIAL="false"
+COLCON_PARALLEL_WORKERS="4"
+COLCON_IS_NICE="true"
 
 # Generates arguments for colcon build
 function _gen_concon_args()
 {
     local args=""
 
-    if [[ "$IS_COLCON_SYM_INSTALL" = "true" ]]; then
+    if [[ "$COLCON_IS_SYM_INSTALL" = "true" ]]; then
         args+=" --symlink-install "
     fi
 
-    if [[ "$IS_COLCON_SEQUENTIAL" == "true" ]]; then
+    if [[ "$COLCON_IS_SEQUENTIAL" == "true" ]]; then
         args+=" --executor sequential "
     else
         args+=" --parallel-workers ${COLCON_PARALLEL_WORKERS} "
@@ -33,7 +33,7 @@ function _gen_colcon_prefix()
 {
     local prefix=""
 
-    if [[ "$IS_COLCON_NICE" == "true" ]]; then
+    if [[ "$COLCON_IS_NICE" == "true" ]]; then
         prefix+="nice"
     fi
 
@@ -52,7 +52,7 @@ function _locate_ros_workspace()
             echo "${path}"
             return 0
         fi
-    done < "${WORKSPACE_LIST}"
+    done < "${ROS_WORKSPACE_LIST}"
 
     return 1
 
@@ -64,13 +64,138 @@ function sows()
     local workspace_path
     workspace_path=$(_locate_ros_workspace)
     if [ -z "$workspace_path" ]; then
-        echo "Workspace not found, Add workspace path to $WORKSPACE_LIST"
+        echo "Workspace not found, Add workspace path to $ROS_WORKSPACE_LIST"
         return 1
     fi
     source "${workspace_path}/install/setup.bash" && echo  "Sourced the workspace $workspace_path"
 }
 
+# Navigate to the ros package seemlessly
+function roscd()
+{
+    local workspace_path
+    local package_rel_path
+    local option="package"
+
+    # Define default values
+    local build_flag=""
+    local src_flag=""
+    local install_flag=""
+
+    # Define usage function
+    usage() {
+        echo "Usage: roscd [-b | -s | -i | -w] [--help]"
+        echo "  Navigate across ROS workspaces and ROS packages seemlessly"
+        echo ""
+        echo "  This primarily navigates to ros package, if workspace not found, then interactively"
+        echo "  selects workspace(requires fzf installation). So you can run this from any directory."
+        echo ""
+        echo "Options:"
+        echo "     roscd         Navigate to package src directory"
+        echo "     -w            Navigate to workspace"
+        echo "     -i,--install  Navigate to package/workspace install directory"
+        echo "     -b,--build    Navigate to package/workspace build directory"
+        echo "     -s,--src      Navigate to package/workspace src directory"
+        echo "     -h,--help     Show this help message"
+        echo ""
+        echo "ENVIRONMENT"
+        echo "  ROS_WORKSPACE_LIST   Path of file containing ROS workspaces and their names. Add "
+        echo "                       your workspace path and name to $ROS_WORKSPACE_LIST,"
+        echo "                       like the below example"
+        echo "   /home/user/ws_moveit:My moveit workspace"
+        echo "   /home/user/ros_ws:My ROS2 workspace"
+        return 1
+    }
+
+    # Parse options
+    OPTIONS=$(getopt -o "bsiwh" --long "build,src,install,workspace,help" -n "roscd" -- "$@")
+
+    # Check for errors in getopt
+    if [ $? -ne 0 ]; then
+        usage
+    fi
+
+    eval set -- "$OPTIONS"
+
+    # Process options and arguments
+    while true; do
+        case "$1" in
+            '-b'|'--build') build_flag="true" ;;
+            '-s'|'--src') src_flag="true" ;;
+            '-i'|'--install') install_flag="true" ;;
+            '-w'|'--workspace') option="workspace" ;;
+            '-h'|'--help') usage; return; ;;
+            --) shift; break ;;
+            *) usage; return; ;;
+        esac
+        shift
+    done
+
+    workspace_path=$(_locate_ros_workspace)
+    if [ ! -d "$workspace_path" ]; then
+        if ! command -v fzf &> /dev/null; then
+            echo "Workspace not found, Add workspace path to $ROS_WORKSPACE_LIST" >&2
+            return 1
+        else
+            if [[ "$option" != "workspace" ]] ; then
+                workspace_path="$(awk -F ":" '{print $2}' $ROS_WORKSPACE_LIST | fzf | xargs -I{} grep {} ${ROS_WORKSPACE_LIST} | cut -d ":" -f 1)"
+                test -d "${workspace_path}" || return 1
+                cd "${workspace_path}"
+            fi
+
+        fi
+    fi
+
+    # Handle options
+    case "$option" in
+        "workspace")
+            workspace_path="$(awk -F ":" '{print $2}' ${ROS_WORKSPACE_LIST} | fzf | xargs -I{} grep {} ${ROS_WORKSPACE_LIST} | cut -d ":" -f 1)"
+            test -d "${workspace_path}" || return 1
+            cd "${workspace_path}"
+            ;;
+        "package")
+            src_flag=""
+            if ! command -v fzf &> /dev/null; then
+                echo "Install fzf to interactively select a package" >&2
+                return 1
+            fi
+
+            local  search_path="${workspace_path}/src"
+            local package_info=$(find "$search_path" -type f -name "package.xml" -exec sh -c 'echo "$(awk -F"[<>]" "/<name>/{print \$3}" "{}") <---- $(realpath --relative-to='"$search_path"' "{}" | sed "s/\/package.xml$//g")"' \;)
+            local selected_package_info selected_package_name
+            if [ $# -eq 0 ]; then
+                selected_package_info=$(echo "$package_info" | fzf)
+                package_rel_path=$(echo "$selected_package_info" | awk '{print $3}')
+                selected_package_name=$(echo "$selected_package_info" | awk '{print $1}')
+            else
+                selected_package_name="$1"
+                package_rel_path=$(echo $package_info | awk -v pkg="$selected_package_name" '$1 == pkg {print $3}')
+            fi
+            # selected_package_info=$(colcon list --paths "${workspace_path}/src/*" | awk '{print $1 "    " $2}' | fzf)
+            # selected_package_info=$(colcon list --paths "${workspace_path}/src/*" | awk -v pkg="$1" '$1 == pkg')
+            ;;
+    esac
+
+    if [ -n "$build_flag" ]; then
+        cd "${workspace_path}/build/${selected_package_name}"
+    elif [ -n "$src_flag" ]; then
+        cd "${workspace_path}/src"
+    elif [ -n "$install_flag" ]; then
+        cd "${workspace_path}/install/${selected_package_name}"
+    else
+        if [[ $option == "package" ]]; then
+            cd "${workspace_path}/src/${package_rel_path}"
+        else
+            cd "${workspace_path}"
+        fi
+    fi
+}
+
+
 # Build and source the workspace
+# Usage:  basows          Build and source the workspace
+#         basows --this   Build package from current directory and source the workspace with current path
+#         basows <extra args> Build and source the workspace with extra args(will be directly appended to colcon build)
 function basows()
 {
     local workspace_path colcon_args
@@ -78,7 +203,7 @@ function basows()
     colcon_args=$(_gen_concon_args)
 
     if [ -z "$workspace_path" ]; then
-        echo "Workspace not found, Add workspace path to $WORKSPACE_LIST"
+        echo "Workspace not found, Add workspace path to $ROS_WORKSPACE_LIST"
         return 1
     fi
 
@@ -93,6 +218,7 @@ function basows()
     fi
 
     pushd "${workspace_path}" || return
+    echo "$(_gen_colcon_prefix) colcon build $colcon_args"
     $(_gen_colcon_prefix) colcon build $colcon_args
     sows
     popd || return

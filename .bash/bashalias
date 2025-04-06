@@ -1,2 +1,5 @@
 
 alias dotfiles='/usr/bin/git --git-dir=$HOME/.mydotfiles/ --work-tree=$HOME'    
+
+alias extract_url='grep -o '\''https\?://[^[:space:]]\+'\'
+alias remove_empty_line="sed -i '/^$/d'"

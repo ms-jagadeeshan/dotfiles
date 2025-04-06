@@ -15,7 +15,7 @@ services:
     volumes:
       - ./bookstack_app_data:/config
     ports:
-      - 8001:80
+      - 8005:80
     restart: unless-stopped
     depends_on:
       - bookstack_db

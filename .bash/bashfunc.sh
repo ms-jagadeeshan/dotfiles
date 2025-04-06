@@ -1,0 +1,1 @@
+/home/jagamatrix/.bash/bashfunc
