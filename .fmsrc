@@ -1,0 +1,7 @@
+# .fmsrc - FMS Configuration and Autocompletion Setup
+
+# Enable autocompletion for FMS commands
+[ -f "/home/jagadeeshan/.bash_completion.d/fms-bash-completion.sh" ] && source "/home/jagadeeshan/.bash_completion.d/fms-bash-completion.sh"
+[ -f "/home/jagadeeshan/.fms_cli_tools" ] && source "/home/jagadeeshan/.fms_cli_tools"
+
+FMS_WORKSPACES_PATH="/home/jagadeeshan/fleet"
