@@ -8,7 +8,7 @@
 return {
   "AstroNvim/astrocommunity",
   -- { import = "astrocommunity.pack.lua" },
- { import = "astrocommunity.completion.codeium-nvim" },
+  { import = "astrocommunity.completion.codeium-nvim" },
 
   { import = "astrocommunity.media.vim-wakatime" },
 

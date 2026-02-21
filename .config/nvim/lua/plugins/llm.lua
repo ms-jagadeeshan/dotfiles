@@ -9,6 +9,38 @@ return {
       }
     end,
   },
+  -- {
+  --   "leonardcser/cursortab.nvim",
+  --   -- version = "*",  -- Use latest tagged version for more stability
+  --   build = "cd server && go build",
+  --   config = function()
+  --     require("cursortab").setup {
+  --       -- keymaps = { accept = false },
+  --       blink = {
+  --         enabled = false,
+  --         ghost_text = true,
+  --       },
+  --       provider = {
+  --         type = "sweep",
+  --         url = "http://127.0.0.1:8081",
+  --       },
+  --     }
+  --     require("blink.cmp").setup {
+  --       sources = {
+  --         providers = {
+  --           cursortab = {
+  --             module = "cursortab.blink",
+  --             name = "cursortab",
+  --             async = true,
+  --             -- Should match provider.completion_timeout in cursortab config
+  --             timeout_ms = 5000,
+  --             score_offset = 50, -- Higher priority among suggestions
+  --           },
+  --         },
+  --       },
+  --     }
+  --   end,
+  -- },
   {
     "NickvanDyke/opencode.nvim",
     dependencies = {

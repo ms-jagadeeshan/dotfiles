@@ -1,1 +1,10 @@
+#!/usr/bin/env bash
+
+if [[ "$1" == "sweep" ]] ; then
+ /home/jagadeeshan/experiments/llama.cpp/build/bin/llama-server -m /home/jagadeeshan/.cache/llama.cpp/sweep-next-edit-1.5b.q8_0.v2.gguf --port 8081 -c 32768 -ngl 99 -fa auto -ub 1024 -b 1024 -dt 0.1  --cache-reuse 256
+# /home/jagadeeshan/experiments/llama.cpp/build/bin/llama-server --port 8081 -m /home/jagadeeshan/.cache/llama.cpp/sweep-next-edit-1.5b.q8_0.v2.gguf 
+elif [[ "$1" == "qwen" ]] ; then
  /home/jagadeeshan/experiments/llama.cpp/build/bin/llama-server -hf ggml-org/Qwen2.5-Coder-1.5B-Q8_0-GGUF --port 8081 -c 32768 -ngl 99 -fa auto -ub 1024 -b 1024 -dt 0.1  --cache-reuse 256
+else
+ /home/jagadeeshan/experiments/llama.cpp/build/bin/llama-server -hf ggml-org/Qwen2.5-Coder-1.5B-Q8_0-GGUF --port 8081 -c 32768 -ngl 99 -fa auto -ub 1024 -b 1024 -dt 0.1  --cache-reuse 256
+fi
